@@ -772,6 +772,12 @@ def _write_report(path: StrPath, outdir: StrPath, artifacts: Sequence[str]) -> N
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as report_file:
             report_file.write(data)
+        # mkstemp() always creates the file with 0600 permissions, which makes the
+        # report less accessible than the artifacts it describes. Adjust the mode
+        # to the one a regular file creation would have produced under the umask.
+        umask = os.umask(0)
+        os.umask(umask)
+        os.chmod(tmp, 0o666 & ~umask)
         os.replace(tmp, path)
     except BaseException:
         with contextlib.suppress(OSError):

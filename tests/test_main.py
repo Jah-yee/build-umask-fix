@@ -1466,6 +1466,19 @@ def test_write_report_cleans_tmp_on_failure(
     assert not list(tmp_path.glob('*.tmp'))
 
 
+def test_write_report_respects_umask(tmp_path: pathlib.Path, built_dist: tuple[pathlib.Path, list[str]]) -> None:
+    outdir, names = built_dist
+    report = tmp_path / 'report.json'
+
+    previous_umask = os.umask(0o022)
+    try:
+        build.__main__._write_report(report, str(outdir), names)
+    finally:
+        os.umask(previous_umask)
+
+    assert stat.S_IMODE(report.stat().st_mode) == 0o644
+
+
 def test_write_report_creates_parent_directory(tmp_path: pathlib.Path, built_dist: tuple[pathlib.Path, list[str]]) -> None:
     outdir, names = built_dist
     report = tmp_path / 'nested' / 'dir' / 'report.json'
